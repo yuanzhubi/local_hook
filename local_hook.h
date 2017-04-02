@@ -1,8 +1,6 @@
 #ifndef LOCAL_HOOK_H_
 #define LOCAL_HOOK_H_
 
-
-
 #define MACRO_TOSTRING_FOR_HOOK(x) MACRO_TOSTRING_FOR_HOOK1(x)
 #define MACRO_TOSTRING_FOR_HOOK1(x) #x
 #define MACRO_JOIN_FOR_HOOK3(x,y,z) x##y##z
@@ -11,45 +9,52 @@
 //MACRO API:
 //LOCAL_HOOK(src_function_name, dest_function_name) : use it out of function
 //LOCAL_HOOK_CPP(src_function_name, dest_function_name) : use it out of function
-//LOCAL_HOOK_PREPARE(src_function_name) : use it out of function
-//LOCAL_HOOK_START(src_function_name, dest_function_ptr) : use it in a function
+//LOCAL_HOOK_INIT(src_function_name) : use it out of function
+//LOCAL_HOOK_START(src_function_name, dest_function_ptr) : use it in a function and the second argument is a function pointer!
 
 //You can use LOCAL_HOOK out of function filed. The hook will happen before the main function, or after dlopen finish if the codes is compiled into a dynamic library.
 //If your version of GCC does not support __attribute__ ((constructor)), you can use LOCAL_HOOK_CPP in a c++ source file instead.
-//你可以在函数体外使用LOCAL_HOOK，这样“挂钩”行为会在main函数执行之前生效，在dlopen完成之后（如果你这个代码是被编译进了动态库）。
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//你可以在函数体外使用LOCAL_HOOK，这样“挂钩”行为会在main函数执行之前生效，在dlopen完成之后（如果你这个代码是被编译进了动态库）生效。
 //如果你的GCC版本不支持__attribute__ ((constructor)), 那么你可以在一个C++代码文件里使用LOCAL_HOOK_CPP来代替LOCAL_HOOK。
 
-//For more flexible, you can use LOCAL_HOOK_PREPARE out of function and LOCAL_HOOK_START in any proper function. Then the hook will happen after LOCAL_HOOK_START executed.
+
+//For more flexible, you can use LOCAL_HOOK_INIT out of function and LOCAL_HOOK_START in any proper function. Then the hook will happen after LOCAL_HOOK_START executed.
 //Either the first hook happened in LOCAL_HOOK or LOCAL_HOOK_CPP or LOCAL_HOOK_START, you can call LOCAL_HOOK_START anywhere to hook second times or more, with any other function.
-//如果需要更灵活的使用，你可以在函数体外使用LOCAL_HOOK_PREPARE而在某个合适的函数中使用LOCAL_HOOK_START。“挂钩”行为会在LOCAL_HOOK_START执行后生效。
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//如果需要更灵活的使用，你可以在函数体外使用LOCAL_HOOK_INIT而在某个合适的函数中使用LOCAL_HOOK_START。“挂钩”行为会在LOCAL_HOOK_START执行后生效。
 //不管第一次的“挂钩”行为发生在LOCAL_HOOK 或 LOCAL_HOOK_CPP 或者 LOCAL_HOOK_START之中，你可以在任何函数中第二次调用或者更多次的调用LOCAL_HOOK_START来重新“挂钩”。
+
 
 //Attention:
 //You can use it in C/C++ language.
 //Local hook can be only used to hook a function that was compiled into a dynamic library at x86 or x64 platform in elf format.
-//Large code models(see system v abi for x64) is not supported。 (Your GOT is greater than 2GB? The total linked ".so" files should be greater than 50GB in size!)
-//How to remove the hook? You need to use dlsym to get the original function address first(after hook you do not have other method to get the original function address), and use LOCAL_HOOK_START with the address as 2rd argument.
+//Large code models(SYSTEM V AMD64 ABI) is not supported. (Your GOT is greater than 2GB? The total linked ".so" files should be greater than 50GB in size!)
+//How to remove the hook? You need to use dlsym to get the original function address first(after hook you do not have other method to get the original function address),
+//and use LOCAL_HOOK_START with the address as 2rd argument.
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//注意：
 //你可以在C/C++中使用。
 //局部挂钩只能对一个在x86或者x64的平台下编译进elf格式的动态库并导出的函数进行挂钩。
-//“大型代码模式”(见 system v abi for x64) 是不支持的。（简单说吧，难道你链接的动态库超过50G了？）
+//“大型代码模式”(见 SYSTEM V AMD64 ABI) 是不支持的。（简单说吧，难道你链接的动态库超过50G了？）
 //需要移除“挂钩”？你需要先通过dlsym获取函数的原始地址("挂钩"之后你没有别的方法获取他的原始地址了)，再把他作为第二个参数调用LOCAL_HOOK_START。
 
 
-
 #define LOCAL_HOOK(src_function_name, dest_function_name) \
-LOCAL_HOOK_PREPARE(src_function_name) \
+LOCAL_HOOK_INIT(src_function_name) \
 __attribute__ ((constructor)) static void MACRO_JOIN_FOR_HOOK4(hook_, src_function_name, dest_function_name, _init)(){\
    LOCAL_HOOK_START(src_function_name, &(dest_function_name)); \
 }
 
 #ifdef __cplusplus
 #define LOCAL_HOOK_CPP(src_function_name, dest_function_name) \
-LOCAL_HOOK_PREPARE(src_function_name) \
+LOCAL_HOOK_INIT(src_function_name) \
 struct MACRO_JOIN_FOR_HOOK4(hook_, src_function_name, dest_function_name, _struct){ \
    MACRO_JOIN_FOR_HOOK4(hook_, src_function_name, dest_function_name, _struct)(){ \
         LOCAL_HOOK_START(src_function_name, &(dest_function_name)); \
    } \
-}MACRO_JOIN_FOR_HOOK4(hook_, src_function_name, dest_function_name, _struct_singleton);
+}; \
+static MACRO_JOIN_FOR_HOOK4(hook_, src_function_name, dest_function_name, _struct) MACRO_JOIN_FOR_HOOK4(hook_, src_function_name, dest_function_name, _struct_singleton);
 #endif
 
 #define LOCAL_HOOK_GOT_FUNCTION_NAME(src_function_name) MACRO_JOIN_FOR_HOOK3(get_, src_function_name, _got_address)
@@ -121,7 +126,7 @@ struct MACRO_JOIN_FOR_HOOK4(hook_, src_function_name, dest_function_name, _struc
 #define LOCAL_HOOK_GOT(src_function_name) \
 __attribute__ ((noinline, optimize("O2"))) static void** LOCAL_HOOK_GOT_FUNCTION_NAME(src_function_name)(){ \
     register void **result asm ("rax"); \
-    __asm__ volatile (      "leaq      "MACRO_TOSTRING_FOR_HOOK(src_function_name)"@GOTPCREL(%rip), %rax;"); \
+    __asm__  (      "leaq      "MACRO_TOSTRING_FOR_HOOK(src_function_name)"@GOTPCREL(%rip), %rax;"); \
     return result; \
 }
 
@@ -129,14 +134,15 @@ __attribute__ ((noinline, optimize("O2"))) static void** LOCAL_HOOK_GOT_FUNCTION
 #define LOCAL_HOOK_PLT(src_function_name) \
 __attribute__ ((noinline, optimize("O2"))) static void*  LOCAL_HOOK_PLT_FUNCTION_NAME(src_function_name)(){ \
     register void *result asm ("rax"); \
-    __asm__ volatile (      "movq      $"MACRO_TOSTRING_FOR_HOOK(src_function_name)", %rax;"); \
-    return result; \
+    __asm__  (      "leaq       "MACRO_TOSTRING_FOR_HOOK(src_function_name)"@PLT(%rip), %rax;"); \
+     return result; \
 }
 
 #endif // __x86_64__
 
 #ifdef __i386__
 
+//Intel c++ compiler result says call-pop that leads invalidation of stack buffer will be better than call-lea that leads real jump.
 #define LOCAL_HOOK_GOT(src_function_name) \
 __attribute__ ((noinline, optimize("O2"))) static void** LOCAL_HOOK_GOT_FUNCTION_NAME(src_function_name)(){ \
     register void **result asm ("eax"); \
@@ -152,14 +158,20 @@ __attribute__ ((noinline, optimize("O2"))) static void** LOCAL_HOOK_GOT_FUNCTION
 
 #define LOCAL_HOOK_PLT(src_function_name) \
 __attribute__ ((noinline, optimize("O2"))) static void*  LOCAL_HOOK_PLT_FUNCTION_NAME(src_function_name)(){ \
-     register void *result asm ("eax"); \
-    __asm__ volatile (      "movl      $"MACRO_TOSTRING_FOR_HOOK(src_function_name)", %eax;");\
+    register void *result asm ("eax"); \
+    __asm__  (      "call       1f;" \
+                    "1:" \
+                    "popl       %eax;" \
+                    "leal       "MACRO_TOSTRING_FOR_HOOK(src_function_name)"@PLT(%eax), %eax;" \
+                    "2:" \
+                    "leal       2b-1b(%eax), %eax;" \
+            ); \
     return result; \
 }
 
 #endif // __i386__
 
-#define LOCAL_HOOK_PREPARE(src_function_name)\
+#define LOCAL_HOOK_INIT(src_function_name)\
     LOCAL_HOOK_GOT(src_function_name) \
     LOCAL_HOOK_PLT(src_function_name)
 
@@ -171,11 +183,16 @@ __attribute__ ((noinline, optimize("O2"))) static void*  LOCAL_HOOK_PLT_FUNCTION
         *got_plt_addr = (void*)dest_function_ptr; \
     }while(0)
 
+#define LOCAL_HOOK_FUNCTIONPOINTER_SYNC(src_function_name) \
+    do{ \
+        *LOCAL_HOOK_GOT_FUNCTION_NAME(src_function_name)() = LOCAL_HOOK_PLT_FUNCTION_NAME(src_function_name)();\
+    }while(0)
+
 #else // defined(__pic__ ) || defined(__PIC__) || defined(__pie__) || defined(__PIE__)
 
 //now so easy
 
-#define LOCAL_HOOK_PREPARE(src_function_name)
+#define LOCAL_HOOK_INIT(src_function_name)
 
 #define LOCAL_HOOK_START(src_function_name, dest_function_ptr) \
     do{ \
