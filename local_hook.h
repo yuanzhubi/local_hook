@@ -17,22 +17,22 @@
 //Your process space can be separated into following space models: an executable file, several dynamic libraries.
 //Here "locally" means you can  hook  the exported function only in one unit.
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//�ֲ����ҹ����������㡰�ֲ����ض�һ��elf��̬�⵼����C�������С��ҹ�����
-//���ǿ��԰ѽ��̵�ַ�ռ仮��Ϊ���µ�ַģ�飺һ����ִ���ļ��������̬�⡣
-//����������˵�ġ��ֲ��������á��ҹ���Ϊ������һ����ַģ������Ч��
+//局部“挂钩”可以让你“局部”地对一个elf动态库导出的C函数进行“挂钩”。
+//我们可以把进程地址空间划分为以下地址模块：一个可执行文件，多个动态库。
+//这里我们所说的“局部”即是让“挂钩行为”仅在一个地址模块中生效。
 
 //#include <stdio.h>
 //LOCAL_HOOK(puts, myputs) 
 
-//That's all��
-//������ˣ�
+//That's all！
+//这就完了！
 
 
 //You have to use LOCAL_HOOK out of function filed. The hook will happen before the main function, or after dlopen finish if the codes is compiled into a dynamic library.
 //If your version of GCC does not support __attribute__ ((constructor)), you can use LOCAL_HOOK_CPP in a c++ source file instead.
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//����ں�������ʹ��LOCAL_HOOK���������ҹ�����Ϊ����main����ִ��֮ǰ��Ч����dlopen���֮���������������Ǳ�������˶�̬�⣩��Ч��
-//������GCC�汾��֧��__attribute__ ((constructor)), ��ô�������һ��C++�����ļ���ʹ��LOCAL_HOOK_CPP������LOCAL_HOOK��
+//你得在函数体外使用LOCAL_HOOK，这样“挂钩”行为会在main函数执行之前生效，在dlopen完成之后（如果你这个代码是被编译进了动态库）生效。
+//如果你的GCC版本不支持__attribute__ ((constructor)), 那么你可以在一个C++代码文件里使用LOCAL_HOOK_CPP来代替LOCAL_HOOK。
 
 
 //But this is not perfect. If other models use function pointer of puts, our hook may affects them.
@@ -41,33 +41,33 @@
 //But we provide LOCAL_HOOK_FUNCTIONPOINTER_SYNC(puts) to help you remove the side affect if you face it(Attention the function pointers now are different!) 
 //and you need to write it in one of the source file of that model (You can use a new file!), then compile and link it.
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//�����Ⲣ���������������ģ��ʹ��puts�ĺ���ָ��,���ǵġ��ҹ�����Ϊ�п��ܻ�Ӱ�쵽���ǵ�ȡֵ,
-//ԭ���Ƕ�̬������ϣ�������ڲ�ͬģ�����ͬһ�����������ͬ�ĺ���ָ��ֵ, ����ص�ģ�����Ǵ��ȼ��ص�ģ���п�������GOT��
-//������˵��������������ͨ������ָ��ȥ����GLIBC��ĺ����ɣ����Ǿ�������ҹ���Ϊ��Ŀ�궼����GLIBC���
-//���������㹻�������������Ķ�̬�⣬��ô�����ṩLOCAL_HOOK_FUNCTIONPOINTER_SYNC(puts) ȥ�Ƴ������ģ��ĸ����ã���ʱ���ڲ�ͬģ������������puts��õĺ���ָ��ֵ����Ͳ�ͬ�ˣ�
-//�������������̫�����г���ʹ��������԰ɣ���������Ҫ�������仰д���Ǹ�ģ���ĳ��Դ���ļ��������¼�һ��Դ���ļ���������仰���в����±�����������ģ�顣
-//����������������������Դ��, �Ǿ�û�취�ˡ�
+//但是这并不完美。如果其它模块使用puts的函数指针,我们的“挂钩”行为有可能会影响到他们的取值,
+//原因是动态链接器希望程序在不同模块对于同一个函数获得相同的函数指针值, 后加载的模块总是从先加载的模块中拷贝部分GOT。
+//不过话说回来，很少有人通过函数指针去调用GLIBC里的函数吧？我们绝大多数挂钩行为的目标都是在GLIBC那里。
+//如果你真的足够不幸遇上这样的动态库，那么我们提供LOCAL_HOOK_FUNCTIONPOINTER_SYNC(puts) 去移除对这个模块的副作用（这时候在不同模块对于这个函数puts获得的函数指针值可真就不同了，
+//不过多数情况不太可能有程序使用这个特性吧）。不过需要你把这个句话写到那个模块的某个源码文件（或者新加一个源码文件来包含这句话）中并重新编译和链接这个模块。
+//你如果不能重新链接这个闭源库, 那就没办法了。
 
 
 //For more flexible, you can use LOCAL_HOOK_INIT out of function and LOCAL_HOOK_START in any proper function. Then the hook will happen after LOCAL_HOOK_START executed.
 //Either the first hook happened in LOCAL_HOOK or LOCAL_HOOK_CPP or LOCAL_HOOK_START, you can call LOCAL_HOOK_START anywhere to hook second times or more, with any other function.
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//�����Ҫ������ʹ�ã�������ں�������ʹ��LOCAL_HOOK_INIT����ĳ�����ʵĺ�����ʹ��LOCAL_HOOK_START�����ҹ�����Ϊ����LOCAL_HOOK_STARTִ�к���Ч��
-//���ܵ�һ�εġ��ҹ�����Ϊ������LOCAL_HOOK �� LOCAL_HOOK_CPP ���� LOCAL_HOOK_START֮�У���������κκ����еڶ��ε��û��߸���εĵ���LOCAL_HOOK_START�����¡��ҹ�����
+//如果需要更灵活的使用，你可以在函数体外使用LOCAL_HOOK_INIT而在某个合适的函数中使用LOCAL_HOOK_START。“挂钩”行为会在LOCAL_HOOK_START执行后生效。
+//不管第一次的“挂钩”行为发生在LOCAL_HOOK 或 LOCAL_HOOK_CPP 或者 LOCAL_HOOK_START之中，你可以在任何函数中第二次调用或者更多次的调用LOCAL_HOOK_START来重新“挂钩”。
 
 
 //Attention:
 //You can use it in C/C++ language.
-//Local hook can be only used to hook a function that was compiled into a dynamic library at x86 or x64 platform in elf format.
+//Local hook can be only used to hook a exported "C" function that was compiled into a dynamic library at x86 or x64 platform in elf format.
 //Large code models(SYSTEM V AMD64 ABI) is not supported. (Your GOT is greater than 2GB? The total linked ".so" files should be greater than 50GB in size!)
 //How to remove the hook? You need to use dlsym to get the original function address first(after hook you do not have other method to get the original function address),
 //and use LOCAL_HOOK_START with the address as 2rd argument.
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//ע�⣺
-//�������C/C++��ʹ�á�
-//�ֲ��ҹ�ֻ�ܶ�һ����x86����x64��ƽ̨�±����elf��ʽ�Ķ�̬�Ⲣ�����ĺ������йҹ���
-//�����ʹ���ģʽ��(�� SYSTEM V AMD64 ABI) �ǲ�֧�ֵġ�����˵�ɣ��ѵ������ӵĶ�̬�ⳬ��50G�ˣ���
-//��Ҫ�Ƴ����ҹ���������Ҫ��ͨ��dlsym��ȡ������ԭʼ��ַ("�ҹ�"֮����û�б�ķ�����ȡ����ԭʼ��ַ��)���ٰ�����Ϊ�ڶ�����������LOCAL_HOOK_START��
+//注意：
+//你可以在C/C++中使用。
+//局部挂钩只能对一个在x86或者x64的平台下编译进elf格式的动态库并导出的C函数进行挂钩。
+//“大型代码模式”(见 SYSTEM V AMD64 ABI) 是不支持的。（简单说吧，难道你链接的动态库超过50G了？）
+//需要移除“挂钩”？你需要先通过dlsym获取函数的原始地址("挂钩"之后你没有别的方法获取他的原始地址了)，再把他作为第二个参数调用LOCAL_HOOK_START。
 
 
 #define LOCAL_HOOK(src_function_name, dest_function_name) \
