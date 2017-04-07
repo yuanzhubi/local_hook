@@ -22,6 +22,7 @@
 //这里我们所说的“局部”即是让“挂钩行为”仅在一个地址模块中生效。
 
 //#include <stdio.h>
+//int myputs(const char* x){printf("%s\n",x);}
 //LOCAL_HOOK(puts, myputs) 
 
 //That's all！
