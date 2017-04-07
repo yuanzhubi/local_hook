@@ -35,26 +35,25 @@
 //如果你的GCC版本不支持__attribute__ ((constructor)), 那么你可以在一个C++代码文件里使用LOCAL_HOOK_CPP来代替LOCAL_HOOK。
 
 
-//But this is not perfect. If other models use function pointer of puts, our hook may affects them.
-//The reason is due to the dynamic library linker wants the function pointer of the one function in every models are same, implemented by GOT copy. 
-//But seldom did programmers use function pointer to call a function in GLIBC? Most of our hook goals are there.
-//But we provide LOCAL_HOOK_FUNCTIONPOINTER_SYNC(puts) to help you remove the side affect if you face it(Attention the function pointers now are different!) 
-//and you need to write it in one of the source file of that model (You can use a new file!), then compile and link it.
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//但是这并不完美。如果其它模块使用puts的函数指针,我们的“挂钩”行为有可能会影响到他们的取值,
-//原因是动态链接器希望程序在不同模块对于同一个函数获得相同的函数指针值, 后加载的模块总是从先加载的模块中拷贝部分GOT。
-//不过话说回来，很少有人通过函数指针去调用GLIBC里的函数吧？我们绝大多数挂钩行为的目标都是在GLIBC那里。
-//如果你真的足够不幸遇上这样的动态库，那么我们提供LOCAL_HOOK_FUNCTIONPOINTER_SYNC(puts) 去移除对这个模块的副作用（这时候在不同模块对于这个函数puts获得的函数指针值可真就不同了，
-//不过多数情况不太可能有程序使用这个特性吧）。不过需要你把这个句话写到那个模块的某个源码文件（或者新加一个源码文件来包含这句话）中并重新编译和链接这个模块。
-//你如果不能重新链接这个闭源库, 那就没办法了。
-
-
 //For more flexible, you can use LOCAL_HOOK_INIT out of function and LOCAL_HOOK_START in any proper function. Then the hook will happen after LOCAL_HOOK_START executed.
 //Either the first hook happened in LOCAL_HOOK or LOCAL_HOOK_CPP or LOCAL_HOOK_START, you can call LOCAL_HOOK_START anywhere to hook second times or more, with any other function.
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //如果需要更灵活的使用，你可以在函数体外使用LOCAL_HOOK_INIT而在某个合适的函数中使用LOCAL_HOOK_START。“挂钩”行为会在LOCAL_HOOK_START执行后生效。
 //不管第一次的“挂钩”行为发生在LOCAL_HOOK 或 LOCAL_HOOK_CPP 或者 LOCAL_HOOK_START之中，你可以在任何函数中第二次调用或者更多次的调用LOCAL_HOOK_START来重新“挂钩”。
 
+
+//But this is not all. If other models use function pointer of puts, our hook may affects them.
+//The reason is due to the dynamic library linker wants the function pointer of the one function in every models are same, implemented by GOT copy. 
+//But seldom did programmers use function pointer in GLIBC to call a function ? Most of our hook goals are there.
+//If you face such dyniamic library,
+//if it is used not by dlopen function but dynamic link, please use LOCAL_HOOK_INIT out of function and use LOCAL_HOOK_START after entering main function, then the we will not affect the dynamic library;
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//但是这并不是全部。如果其它模块使用puts的函数指针,我们的“挂钩”行为有可能会影响到他们的取值,
+//原因是动态链接器希望程序在不同模块对于同一个函数获得相同的函数指针值, 后加载的模块总是从先加载的模块中拷贝部分GOT。
+//不过话说回来，很少有人通过函数指针去调用GLIBC里的函数吧？我们绝大多数挂钩行为的目标都是在GLIBC那里。
+//如果你真的足够不幸遇上这样的动态库，
+//如果他是通过动态链接而不是通过dlopen函数进入你的进程空间的，那么请在函数体外使用LOCAL_HOOK_INIT并且在main函数执行之后使用LOCAL_HOOK_START。这样动态库就不会受到影响了。
 
 //Attention:
 //You can use it in C/C++ language.
