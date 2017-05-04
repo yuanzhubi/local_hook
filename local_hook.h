@@ -30,6 +30,9 @@
 //	puts("Hello World!");
 //	return 0;
 //}
+//
+//possible output:       
+//Hello World!:TESTDEMO\n
 #endif
 
 //That's all！
