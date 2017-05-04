@@ -20,10 +20,17 @@
 //局部“挂钩”可以让你“局部”地对一个elf动态库导出的C函数进行“挂钩”。
 //我们可以把进程地址空间划分为以下地址模块：一个可执行文件，多个动态库。
 //这里我们所说的“局部”即是让“挂钩行为”仅在一个地址模块中生效。
+//下面是个demo
 
+#ifdef TESTDEMO
 //#include <stdio.h>
-//int myputs(const char* x){printf("%s\n",x);}
+//int myputs(const char* x){printf("%s:TESTDEMO\n",x);}
 //LOCAL_HOOK(puts, myputs) 
+//int main(){
+//	puts("Hello World!");
+//	return 0;
+//}
+#endif
 
 //That's all！
 //这就完了！
