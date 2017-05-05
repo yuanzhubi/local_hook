@@ -23,6 +23,7 @@
 //下面是个demo
 
 #ifdef TESTDEMO
+//#include "local_hook.h"
 //#include <stdio.h>
 //int myputs(const char* x){printf("%s:TESTDEMO\n",x);}
 //LOCAL_HOOK(puts, myputs) 
